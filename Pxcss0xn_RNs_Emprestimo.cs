@@ -73,12 +73,139 @@ namespace Bergs.Pxc.Pxcss0xn
                     //A Taxa do Empréstimo deve ser positiva e menor que 10%.
                     return this.Infra.RetornarFalha<int>(new Mensagem(TipoMensagem.Falha_RN03_2));
                 }
-                
+
             }
             return this.Infra.RetornarSucesso<int>(1, new OperacaoRealizadaMensagem());
         }
 
+        /// <summary>
+        /// UF e CodMunicipio
+        /// </summary>
+        public Retorno<int> RNN04(TOEmprestimo toEmprestimo)
+        {
+            if (toEmprestimo.UF.FoiSetado)
+            {
+                toEmprestimo.UF = toEmprestimo.UF.LerConteudoOuPadrao().ToUpper();
 
+                switch (toEmprestimo.UF)
+                {
+                    case "RS":
+                        if (toEmprestimo.CodMunicipio.FoiSetado)
+                        {
+                            if (toEmprestimo.CodMunicipio.LerConteudoOuPadrao().Lenght != 7)
+                            {
+                                //O código do município deve ter tamanho 7.
+                                return this.Infra.RetornarFalha<int>(new Mensagem(TipoMensagem.Falha_RN04_2));
+                            }
+                            if (!(toEmprestimo.CodMunicipio.LerConteudoOuPadrao().SubString(0, 2) == "43"))
+                            {
+                                //Para UF {0}, o Código do Município deve ser iniciado por { 1}.
+                                return this.Infra.RetornarFalha<int>(new Mensagem(TipoMensagem.Falha_RN04_3), "RS", "43");
+                            }
+                        }
+                        break;
+                    case "SC":
+                        if (toEmprestimo.CodMunicipio.FoiSetado)
+                        {
+                            if (toEmprestimo.CodMunicipio.LerConteudoOuPadrao().Lenght != 7)
+                            {
+                                //O código do município deve ter tamanho 7.
+                                return this.Infra.RetornarFalha<int>(new Mensagem(TipoMensagem.Falha_RN04_2));
+                            }
+                            if (!(toEmprestimo.CodMunicipio.LerConteudoOuPadrao().SubString(0, 2) == "42"))
+                            {
+                                //Para UF {0}, o Código do Município deve ser iniciado por { 1}.
+                                return this.Infra.RetornarFalha<int>(new Mensagem(TipoMensagem.Falha_RN04_3), "SC", "42");
+                            }
+                        }
+                        break;
+                    case "PR":
+                        if (toEmprestimo.CodMunicipio.FoiSetado)
+                        {
+                            if (toEmprestimo.CodMunicipio.LerConteudoOuPadrao().Lenght != 7)
+                            {
+                                //O código do município deve ter tamanho 7.
+                                return this.Infra.RetornarFalha<int>(new Mensagem(TipoMensagem.Falha_RN04_2));
+                            }
+                            if (!(toEmprestimo.CodMunicipio.LerConteudoOuPadrao().SubString(0, 2) == "41"))
+                            {
+                                //Para UF {0}, o Código do Município deve ser iniciado por { 1}.
+                                return this.Infra.RetornarFalha<int>(new Mensagem(TipoMensagem.Falha_RN04_3), "PR", "41");
+                            }
+                        }
+                        break;
+                    default:
+                        //São aceitas somente as UFs da região Sul do país.
+                        return this.Infra.RetornarFalha<int>(new Mensagem(TipoMensagem.Falha_RN04_1));
+                        break;
+                }
+            }
+            return this.Infra.RetornarSucesso<int>(1, new OperacaoRealizadaMensagem());
+        }
+
+        /// <summary>
+        /// Garante Existencia Emprestimo
+        /// </summary>
+        public Retorno<int> RNN05(TOClientePxc toClientePxc, string NomeMetodo)// “alterar”, “excluir”, “pagar” ou “cancelar”
+        {
+            Retorno<TOEmprestimo> retOb = Obter(toClientePxc);
+            if (!retOb.Ok)
+            {
+                return this.Infra.RetornarFalha<int>(retOb.Mensagem);
+            }
+            if (!retOb.Dados.TemConteudo)
+            {
+                //mensagem:"Não é possível {0} o empréstimo, pois o mesmo não faz parte dos empréstimos do cliente informado."
+                return this.Infra.RetornarFalha<int>(new Mensagem(TipoMensagem.Falha_RN05, NomeMetodo));
+            }
+            return this.Infra.RetornarSucesso<int>(1, new OperacaoRealizadaMensagem());
+        }
+
+        /// <summary>
+        /// DT: Inclusao, Cancelamento, Pagto
+        /// </summary>
+        public Retorno<int> RNN06(TOEmprestimo toEmprestimo, string NomeMetodo)// “alterar” ou “incluir”
+        {
+            toEmprestimo.DtPagto = new CampoOpcional<DateTime>(null);
+            toEmprestimo.DtCancelamento = new CampoOpcional<DateTime>(null);
+            if (NomeMetodo == "alteracao")
+            {
+                toEmprestimo.DtInicio = new CampoObrigatorio<DateTime>();
+            }
+        }
+
+            /// <summary>
+            /// Situacao
+            /// </summary>
+            public Retorno<int> RNN07(TOClientePxc toClientePxc, string NomeMetodo)// “alterar”, “excluir”, “pagar” ou “cancelar”
+        {
+            Retorno<TOEmprestimo> retOb = Obter(toClientePxc);
+            if (!retOb.Ok)
+            {
+                return this.Infra.RetornarFalha<int>(retOb.Mensagem);
+            }
+
+            if (NomeMetodo == "alterar" || NomeMetodo == "pagar" || NomeMetodo == "cancelar")
+            {
+
+                if (!(retOb.Dados.Situacao == EstadoSituacao.Ativo))
+                {
+                    //Só é possível {0} empréstimo {1}.
+                    return this.Infra.RetornarFalha<int>(new Mensagem(TipoMensagem.Falha_RN07, NomeMetodo, "ativo"));
+                }
+            }
+            if (NomeMetodo == "excluir")
+            {
+
+                if (!(retOb.Dados.Situacao == EstadoSituacao.Pago || retOb.Dados.Situacao == EstadoSituacao.Cancelado))
+                {
+                    //Só é possível {0} empréstimo {1}.
+                    return this.Infra.RetornarFalha<int>(new Mensagem(TipoMensagem.Falha_RN07, NomeMetodo, "pago ou cancelado"));
+                }
+            }
+            return this.Infra.RetornarSucesso<int>(1, new OperacaoRealizadaMensagem());
+        }
         #endregion
+
     }
 }
